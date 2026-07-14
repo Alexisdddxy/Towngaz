@@ -13,9 +13,6 @@ export default function App() {
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
             Choose A Website
           </h1>
-          <p className="mx-auto mt-3 max-w-3xl text-lg text-slate-600">
-            The intern and employee experiences now live as separate websites, while still sharing the same data source.
-          </p>
         </motion.div>
 
         <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
