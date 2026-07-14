@@ -52,7 +52,7 @@ export default function EmployeeApp() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Match For Employees
+                Friday Match For Employees
               </h1>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button

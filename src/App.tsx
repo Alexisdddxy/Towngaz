@@ -23,7 +23,7 @@ export default function App() {
                 <h2 className="text-2xl font-bold text-slate-900">Intern Website</h2>
               </div>
               <p className="mb-6 text-slate-600">
-                Interns fill in their profile and only see their best-fit projects.
+                Interns fill in their profile and only see their best-fit Friday projects.
               </p>
               <Button
                 onClick={() => {

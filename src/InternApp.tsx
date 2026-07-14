@@ -40,8 +40,11 @@ export default function InternApp() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Match For Interns
+                Friday Match For Interns
               </h1>
+              <p className="mt-3 max-w-4xl text-lg text-slate-600">
+                Interns submit their interests and see Friday project matches from the shared marketplace.
+              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
                   onClick={() => {
@@ -81,7 +84,7 @@ export default function InternApp() {
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900">Intern Preference Profile</h2>
                   <p className="text-slate-600">
-                    Pick the teams, themes and strengths you want your work to focus on.
+                    Pick the teams, themes and strengths you want your Friday work to focus on.
                   </p>
                 </div>
               </div>
@@ -120,7 +123,7 @@ export default function InternApp() {
                 ))}
               </div>
 
-              <p className="mb-3 font-semibold text-slate-700">Preferred project themes</p>
+              <p className="mb-3 font-semibold text-slate-700">Preferred Friday project themes</p>
               <div className="mb-6 grid gap-3 md:grid-cols-3">
                 {projectThemes.map((theme) => (
                   <Chip
@@ -222,7 +225,7 @@ export default function InternApp() {
                   <li><b>Theme fit:</b> intern interest matches project themes.</li>
                   <li><b>Skill fit:</b> intern strengths match skills needed.</li>
                   <li><b>Team fit:</b> intern desired department matches project owner.</li>
-                  <li><b>Feasibility:</b> project is suitable for 4 sessions.</li>
+                        <li><b>Feasibility:</b> project is suitable for 4 Friday sessions.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -232,7 +235,7 @@ export default function InternApp() {
             <CardContent className="p-6 md:p-8">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-2xl font-bold text-slate-900">All Friday Projects</h3>
+                  <h3 className="text-2xl font-bold text-slate-900">All Projects</h3>
                   <p className="text-slate-600">
                     Interns can browse the full shared project list, with the strongest matches shown first.
                   </p>
