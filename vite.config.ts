@@ -11,4 +11,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        intern: path.resolve(__dirname, "intern/index.html"),
+        employee: path.resolve(__dirname, "employee/index.html"),
+      },
+    },
+  },
 });
