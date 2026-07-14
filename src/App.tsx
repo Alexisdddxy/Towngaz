@@ -1,24 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { isSupabaseEnabled, supabase } from "@/lib/supabase";
 import {
+  ArrowRight,
   Building2,
-  GraduationCap,
-  Shuffle,
-  Sparkles,
-  Users,
-  ClipboardList,
-  BarChart3,
-  Download,
-  RotateCcw,
   CheckCircle2,
-  ArrowRightLeft,
-  Target,
+  ClipboardList,
+  Download,
+  GraduationCap,
+  Heart,
+  RotateCcw,
   Search,
+  Sparkles,
+  Target,
+  Users,
 } from "lucide-react";
 
 const projectThemes = [
@@ -67,6 +65,7 @@ const skills = [
   "Customer mindset",
   "Presentation skills",
   "Project coordination",
+  "Process improvement",
   "Chinese writing",
   "English writing",
   "Video / media production",
@@ -234,6 +233,8 @@ type SubmitNotice = {
   message: string;
 };
 
+type Page = "home" | "intern" | "employee";
+
 function unique(arr: string[]) {
   return [...new Set(arr)].filter(Boolean);
 }
@@ -313,8 +314,18 @@ function rowToNeed(row: NeedRow): Need {
   };
 }
 
+function getPageFromPath(pathname: string): Page {
+  if (pathname.startsWith("/intern")) return "intern";
+  if (pathname.startsWith("/employee")) return "employee";
+  return "home";
+}
+
+function getPathForPage(page: Exclude<Page, "home">) {
+  return `/${page}`;
+}
+
 export default function App() {
-  const [mode, setMode] = useState("intern");
+  const [page, setPage] = useState<Page>(() => getPageFromPath(window.location.pathname));
   const [internForm, setInternForm] = useState({
     name: "",
     study: "",
@@ -343,11 +354,13 @@ export default function App() {
   const [isSubmittingNeed, setIsSubmittingNeed] = useState(false);
   const [internNotice, setInternNotice] = useState<SubmitNotice | null>(null);
   const [needNotice, setNeedNotice] = useState<SubmitNotice | null>(null);
+  const [favoriteInternIds, setFavoriteInternIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isSupabaseEnabled || !supabase) {
       return;
     }
+
     const client = supabase;
 
     async function loadMarketplaceData() {
@@ -395,6 +408,12 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [needNotice]);
 
+  useEffect(() => {
+    const handlePopState = () => setPage(getPageFromPath(window.location.pathname));
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const fallbackIntern = internPool[0] ?? sampleInterns[0];
   const fallbackNeed = employeeNeeds[0] ?? defaultDepartmentNeeds[0];
 
@@ -438,79 +457,61 @@ export default function App() {
     return internPool
       .map((intern) => ({ intern, ...scoreMatch(intern, activeNeed) }))
       .sort((a, b) => b.score - a.score);
-  }, [internPool, activeNeed]);
+  }, [activeNeed, internPool]);
 
   const marketplaceStats = useMemo(() => {
     const allThemes = unique([
-      ...employeeNeeds.flatMap((n) => n.themes),
-      ...internPool.flatMap((i) => i.desiredThemes),
+      ...employeeNeeds.flatMap((need) => need.themes),
+      ...internPool.flatMap((intern) => intern.desiredThemes),
     ]);
     const totalPossibleMatches = internPool.reduce(
       (sum, intern) => sum + employeeNeeds.filter((need) => scoreMatch(intern, need).score >= 45).length,
       0,
     );
+
     return {
       interns: internPool.length,
       needs: employeeNeeds.length,
       themes: allThemes.length,
       matches: totalPossibleMatches,
     };
-  }, [internPool, employeeNeeds]);
+  }, [employeeNeeds, internPool]);
 
-  const toggle = (
-    setter: React.Dispatch<React.SetStateAction<any>>,
-    key: string,
-    value: string,
-  ) => {
-    setter((prev: any) => ({
-      ...prev,
-      [key]: prev[key].includes(value) ? prev[key].filter((v: string) => v !== value) : [...prev[key], value],
-    }));
+  const favoriteInterns = useMemo(
+    () => internPool.filter((intern) => favoriteInternIds.includes(intern.id)),
+    [favoriteInternIds, internPool],
+  );
+
+  const noticeClass = (notice: SubmitNotice) =>
+    notice.type === "success"
+      ? "text-emerald-700"
+      : notice.type === "error"
+        ? "text-red-600"
+        : "text-slate-600";
+
+  const navigate = (nextPage: Exclude<Page, "home">) => {
+    window.history.pushState({}, "", getPathForPage(nextPage));
+    setPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const Chip = ({
-    active,
-    children,
-    onClick,
-  }: {
-    active: boolean;
-    children: React.ReactNode;
-    onClick: () => void;
-  }) => (
-    <button
-      onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-left shadow-sm transition hover:shadow-md ${
-        active
-          ? "border-emerald-600 bg-emerald-600 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300"
-      }`}
-    >
-      {children}
-    </button>
-  );
+  const toggleListValue = <T extends Record<string, unknown>>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    key: keyof T,
+    value: string,
+  ) => {
+    setter((prev) => {
+      const list = ((prev[key] as string[]) ?? []).filter(Boolean);
+      return {
+        ...prev,
+        [key]: list.includes(value) ? list.filter((item) => item !== value) : [...list, value],
+      };
+    });
+  };
 
-  const MiniBadgeList = ({ items }: { items: string[] }) => (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <Badge key={item} className="border border-emerald-200 bg-white text-emerald-700">
-          {item}
-        </Badge>
-      ))}
-    </div>
-  );
-
-  const MatchBar = ({ score }: { score: number }) => {
-    const q = matchQuality(score);
-    return (
-      <div>
-        <div className="mb-1 flex items-center justify-between text-xs">
-          <span className="font-semibold text-slate-700">{q.label}</span>
-          <span className="text-slate-500">Score {score}</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-          <div className={`h-full ${q.color}`} style={{ width: `${q.width}%` }} />
-        </div>
-      </div>
+  const toggleFavoriteIntern = (internId: string) => {
+    setFavoriteInternIds((prev) =>
+      prev.includes(internId) ? prev.filter((id) => id !== internId) : [...prev, internId],
     );
   };
 
@@ -526,6 +527,7 @@ export default function App() {
       setIsSubmittingNeed(false);
       return;
     }
+
     const client = supabase;
 
     setIsSyncing(true);
@@ -565,6 +567,7 @@ export default function App() {
       setIsSubmittingIntern(false);
       return;
     }
+
     const client = supabase;
 
     setIsSyncing(true);
@@ -602,6 +605,7 @@ export default function App() {
       goals: "",
       availability: "4 Fridays",
     });
+
   const resetNeed = () =>
     setDeptForm({
       department: "",
@@ -618,21 +622,520 @@ export default function App() {
   const exportMatch = () => {
     const topInternNeed = internToNeeds[0];
     const topNeedIntern = needToInterns[0];
-    const text = `Towngas Two-Sided Friday Marketplace Match\n\nMode: ${mode}\n\nIntern-side top match:\nIntern: ${activeIntern.name}\nMatched Department Project: ${topInternNeed?.need.title}\nDepartment: ${topInternNeed?.need.department}\nMatch Score: ${topInternNeed?.score}\nShared Themes: ${topInternNeed?.themeOverlap.join(", ")}\nShared Skills: ${topInternNeed?.skillOverlap.join(", ")}\n\nDepartment-side top match:\nProject: ${activeNeed.title}\nMatched Intern: ${topNeedIntern?.intern.name}\nIntern Background: ${topNeedIntern?.intern.study}\nMatch Score: ${topNeedIntern?.score}\nShared Themes: ${topNeedIntern?.themeOverlap.join(", ")}\nShared Skills: ${topNeedIntern?.skillOverlap.join(", ")}\n\nMarketplace Stats:\nIntern profiles: ${marketplaceStats.interns}\nDepartment needs: ${marketplaceStats.needs}\nPossible matches: ${marketplaceStats.matches}`;
+    const text = `Towngas Friday Marketplace Match\n\nPage: ${page}\n\nIntern-side top match:\nIntern: ${activeIntern.name}\nMatched Department Project: ${topInternNeed?.need.title}\nDepartment: ${topInternNeed?.need.department}\nMatch Score: ${topInternNeed?.score}\nShared Themes: ${topInternNeed?.themeOverlap.join(", ")}\nShared Skills: ${topInternNeed?.skillOverlap.join(", ")}\n\nDepartment-side top match:\nProject: ${activeNeed.title}\nMatched Intern: ${topNeedIntern?.intern.name}\nIntern Background: ${topNeedIntern?.intern.study}\nMatch Score: ${topNeedIntern?.score}\nShared Themes: ${topNeedIntern?.themeOverlap.join(", ")}\nShared Skills: ${topNeedIntern?.skillOverlap.join(", ")}\n\nMarketplace Stats:\nIntern profiles: ${marketplaceStats.interns}\nDepartment needs: ${marketplaceStats.needs}\nPossible matches: ${marketplaceStats.matches}`;
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "two-sided-friday-marketplace-match.txt";
-    a.click();
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "friday-marketplace-match-summary.txt";
+    anchor.click();
     URL.revokeObjectURL(url);
   };
+
+  const Chip = ({
+    active,
+    children,
+    onClick,
+  }: {
+    active: boolean;
+    children: React.ReactNode;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border px-4 py-3 text-left shadow-sm transition hover:shadow-md ${
+        active
+          ? "border-emerald-600 bg-emerald-600 text-white"
+          : "border-slate-200 bg-white text-slate-700 hover:border-emerald-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  const MiniBadgeList = ({ items }: { items: string[] }) => (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <Badge key={item} className="border border-emerald-200 bg-white text-emerald-700">
+          {item}
+        </Badge>
+      ))}
+    </div>
+  );
+
+  const MatchBar = ({ score }: { score: number }) => {
+    const quality = matchQuality(score);
+    return (
+      <div>
+        <div className="mb-1 flex items-center justify-between text-xs">
+          <span className="font-semibold text-slate-700">{quality.label}</span>
+          <span className="text-slate-500">Score {score}</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className={`h-full ${quality.color}`} style={{ width: `${quality.width}%` }} />
+        </div>
+      </div>
+    );
+  };
+
+  const renderInternPage = () => (
+    <div className="grid gap-6 lg:grid-cols-5">
+      <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-3">
+        <CardContent className="p-6 md:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+              <GraduationCap />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Intern Preference Profile</h2>
+              <p className="text-slate-600">
+                Interns select the teams, project themes and skills they want to explore on Fridays.
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-5 grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Intern name</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={internForm.name}
+                onChange={(e) => setInternForm({ ...internForm, name: e.target.value })}
+                placeholder="e.g. Summer Intern 01"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Study background / major</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={internForm.study}
+                onChange={(e) => setInternForm({ ...internForm, study: e.target.value })}
+                placeholder="e.g. Engineering / Business / IT"
+              />
+            </label>
+          </div>
+
+          <p className="mb-3 font-semibold text-slate-700">Desired teams / departments</p>
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            {departments.slice(0, 12).map((department) => (
+              <Chip
+                key={department}
+                active={internForm.desiredTeams.includes(department)}
+                onClick={() => toggleListValue(setInternForm, "desiredTeams", department)}
+              >
+                {department}
+              </Chip>
+            ))}
+          </div>
+
+          <p className="mb-3 font-semibold text-slate-700">Preferred Friday project themes</p>
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            {projectThemes.map((theme) => (
+              <Chip
+                key={theme}
+                active={internForm.desiredThemes.includes(theme)}
+                onClick={() => toggleListValue(setInternForm, "desiredThemes", theme)}
+              >
+                {theme}
+              </Chip>
+            ))}
+          </div>
+
+          <p className="mb-3 font-semibold text-slate-700">Skills / strengths the intern can contribute</p>
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            {skills.map((skill) => (
+              <Chip
+                key={skill}
+                active={internForm.skills.includes(skill)}
+                onClick={() => toggleListValue(setInternForm, "skills", skill)}
+              >
+                {skill}
+              </Chip>
+            ))}
+          </div>
+
+          <label className="block space-y-2">
+            <span className="font-medium text-slate-700">Learning goal</span>
+            <textarea
+              className="min-h-24 w-full rounded-2xl border border-slate-200 p-3"
+              value={internForm.goals}
+              onChange={(e) => setInternForm({ ...internForm, goals: e.target.value })}
+              placeholder="What kind of business exposure or skill growth is the intern looking for?"
+            />
+          </label>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              onClick={addInternToPool}
+              disabled={isSubmittingIntern}
+              className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
+            >
+              <Users className="mr-2" size={18} />
+              {isSubmittingIntern ? "Submitting..." : "Add Intern to Pool"}
+            </Button>
+            <Button onClick={resetIntern} variant="outline" className="rounded-2xl">
+              <RotateCcw className="mr-2" size={18} />
+              Reset
+            </Button>
+          </div>
+
+          {internNotice ? (
+            <p className={`mt-3 text-sm font-medium ${noticeClass(internNotice)}`}>{internNotice.message}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6 lg:col-span-2">
+        <Card className="rounded-3xl border-0 bg-white shadow-xl">
+          <CardContent className="p-6 md:p-8">
+            <div className="mb-5 flex items-center gap-3">
+              <Sparkles className="text-emerald-600" />
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Best-Fit Projects</h3>
+                <p className="text-sm text-slate-600">
+                  Interns now only see their top two recommendations from the shared marketplace data.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {internToNeeds.slice(0, 2).map(({ need, score, themeOverlap, skillOverlap }) => (
+                <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
+                  <CardContent className="space-y-3 p-4">
+                    <div>
+                      <p className="text-xs text-slate-500">{need.department}</p>
+                      <h4 className="font-bold text-slate-900">{need.title}</h4>
+                    </div>
+                    <MatchBar score={score} />
+                    <div className="text-xs text-slate-600">
+                      <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                    </div>
+                    <div className="text-xs text-slate-600">
+                      <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                    </div>
+                    <p className="text-sm text-slate-600">{need.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 bg-slate-950 text-white shadow-xl">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <Target className="text-emerald-300" />
+              <h3 className="text-xl font-bold">How Matching Works</h3>
+            </div>
+            <ul className="space-y-3 text-sm text-slate-200">
+              <li><b>Theme fit:</b> intern interest matches project themes.</li>
+              <li><b>Skill fit:</b> intern strengths match skills needed.</li>
+              <li><b>Team fit:</b> intern desired department matches project owner.</li>
+              <li><b>Feasibility:</b> project is suitable for 4 Friday sessions.</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderEmployeePage = () => (
+    <div className="grid gap-6 lg:grid-cols-5">
+      <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-3">
+        <CardContent className="p-6 md:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
+              <Building2 />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Employee Department Need</h2>
+              <p className="text-slate-600">
+                Employees submit real department needs and compare them against the full intern pool.
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-5 grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Department</span>
+              <select
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.department}
+                onChange={(e) => setDeptForm({ ...deptForm, department: e.target.value })}
+              >
+                <option value="">Select one</option>
+                {departments.map((department) => (
+                  <option key={department}>{department}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Sponsor / contact person</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.sponsor}
+                onChange={(e) => setDeptForm({ ...deptForm, sponsor: e.target.value })}
+                placeholder="e.g. Department sponsor name"
+              />
+            </label>
+            <label className="space-y-2 md:col-span-2">
+              <span className="font-medium text-slate-700">Project title / business challenge</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.title}
+                onChange={(e) => setDeptForm({ ...deptForm, title: e.target.value })}
+                placeholder="e.g. Improve customer understanding of smart meters"
+              />
+            </label>
+          </div>
+
+          <p className="mb-3 font-semibold text-slate-700">Project themes</p>
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            {projectThemes.map((theme) => (
+              <Chip
+                key={theme}
+                active={deptForm.themes.includes(theme)}
+                onClick={() => toggleListValue(setDeptForm, "themes", theme)}
+              >
+                {theme}
+              </Chip>
+            ))}
+          </div>
+
+          <p className="mb-3 font-semibold text-slate-700">Skills needed from interns</p>
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            {skills.map((skill) => (
+              <Chip
+                key={skill}
+                active={deptForm.skills.includes(skill)}
+                onClick={() => toggleListValue(setDeptForm, "skills", skill)}
+              >
+                {skill}
+              </Chip>
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Expected output</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.output}
+                onChange={(e) => setDeptForm({ ...deptForm, output: e.target.value })}
+                placeholder="e.g. Dashboard prototype / proposal / infographic"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Mentoring availability</span>
+              <select
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.mentorTime}
+                onChange={(e) => setDeptForm({ ...deptForm, mentorTime: e.target.value })}
+              >
+                {["15 minutes per week", "30 minutes per week", "1 hour per week", "Briefing and final review only"].map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Confidentiality level</span>
+              <select
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.confidentiality}
+                onChange={(e) => setDeptForm({ ...deptForm, confidentiality: e.target.value })}
+              >
+                {["Low", "Medium", "High / sensitive", "Not sure"].map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="font-medium text-slate-700">Business value</span>
+              <input
+                className="w-full rounded-2xl border border-slate-200 p-3"
+                value={deptForm.value}
+                onChange={(e) => setDeptForm({ ...deptForm, value: e.target.value })}
+                placeholder="e.g. Saves time / improves CX / supports ESG"
+              />
+            </label>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              onClick={addNeedToPool}
+              disabled={isSubmittingNeed}
+              className="rounded-2xl bg-sky-600 hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-400"
+            >
+              <ClipboardList className="mr-2" size={18} />
+              {isSubmittingNeed ? "Submitting..." : "Add Need to Pool"}
+            </Button>
+            <Button onClick={resetNeed} variant="outline" className="rounded-2xl">
+              <RotateCcw className="mr-2" size={18} />
+              Reset
+            </Button>
+          </div>
+
+          {needNotice ? (
+            <p className={`mt-3 text-sm font-medium ${noticeClass(needNotice)}`}>{needNotice.message}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6 lg:col-span-2">
+        <Card className="rounded-3xl border-0 bg-white shadow-xl">
+          <CardContent className="p-6 md:p-8">
+            <div className="mb-5 flex items-center gap-3">
+              <Search className="text-sky-600" />
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Recommended Intern Profiles</h3>
+                <p className="text-sm text-slate-600">
+                  Employees can see the strongest matches for the active department need.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {needToInterns.slice(0, 4).map(({ intern, score, themeOverlap, skillOverlap }) => {
+                const isFavorite = favoriteInternIds.includes(intern.id);
+                return (
+                  <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-slate-500">{intern.study}</p>
+                          <h4 className="font-bold text-slate-900">{intern.name}</h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleFavoriteIntern(intern.id)}
+                          className={`rounded-full border p-2 transition ${
+                            isFavorite
+                              ? "border-rose-200 bg-rose-50 text-rose-600"
+                              : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
+                          }`}
+                          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                        >
+                          <Heart className={isFavorite ? "fill-current" : ""} size={16} />
+                        </button>
+                      </div>
+                      <MatchBar score={score} />
+                      <div className="text-xs text-slate-600">
+                        <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                      </div>
+                      <div className="text-xs text-slate-600">
+                        <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                      </div>
+                      <p className="text-sm text-slate-600">{intern.goals}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 bg-white shadow-xl">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Employee Shortlist</h3>
+                <p className="text-sm text-slate-600">Favorites are stored in this page session for now.</p>
+              </div>
+              <Badge className="bg-rose-100 text-rose-700">{favoriteInterns.length} saved</Badge>
+            </div>
+
+            <div className="space-y-3">
+              {favoriteInterns.length > 0 ? (
+                favoriteInterns.map((intern) => (
+                  <div key={intern.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{intern.name}</p>
+                        <p className="text-xs text-slate-500">{intern.study}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavoriteIntern(intern.id)}
+                        className="text-sm font-medium text-rose-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{intern.goals}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Pick favorite interns from the recommendation list or the full directory below.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-5">
+        <CardContent className="p-6 md:p-8">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-900">All Intern Profiles</h3>
+              <p className="text-slate-600">Employees can browse the full shared intern pool from this page.</p>
+            </div>
+            <Badge className="bg-sky-100 text-sky-700">{internPool.length} interns</Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {internPool.map((intern) => {
+              const bestNeed = employeeNeeds
+                .map((need) => ({ need, ...scoreMatch(intern, need) }))
+                .sort((a, b) => b.score - a.score)[0];
+              const isFavorite = favoriteInternIds.includes(intern.id);
+
+              return (
+                <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-slate-900">{intern.name}</h4>
+                        <p className="text-sm text-slate-500">{intern.study}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavoriteIntern(intern.id)}
+                        className={`rounded-full border p-2 transition ${
+                          isFavorite
+                            ? "border-rose-200 bg-rose-50 text-rose-600"
+                            : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
+                        }`}
+                        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Heart className={isFavorite ? "fill-current" : ""} size={16} />
+                      </button>
+                    </div>
+                    <MiniBadgeList items={intern.desiredThemes.slice(0, 3)} />
+                    <p className="text-sm text-slate-600">{intern.goals}</p>
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                      <p className="mb-1 text-xs text-slate-500">Current best project match</p>
+                      <h5 className="font-semibold text-slate-900">{bestNeed.need.title}</h5>
+                      <p className="text-sm text-slate-600">{bestNeed.need.department}</p>
+                      <div className="mt-3">
+                        <MatchBar score={bestNeed.score} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <Badge className="mb-3 bg-emerald-600">Towngas Open Source Talent Marketplace</Badge>
+          <Badge className="mb-3 bg-emerald-600">Towngas Open Talent Marketplace</Badge>
           <p className="mb-3 text-sm text-slate-600">
             Data mode: <span className="font-semibold">{syncState}</span>
             {isSyncing ? " (working...)" : ""}
@@ -640,19 +1143,17 @@ export default function App() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Two-Sided Friday Match
+                Friday Match Portal
               </h1>
               <p className="mt-3 max-w-4xl text-lg text-slate-600">
-                A live matching website where interns input their desired teams, roles, project themes and
-                skills, while employees input department project needs. The platform recommends matches in both
-                directions.
+                One shared data source, with simpler role-based pages for interns and employees.
               </p>
             </div>
             <Card className="min-w-72 rounded-3xl border-0 bg-white/85 shadow-lg backdrop-blur">
               <CardContent className="p-5">
                 <div className="mb-3 flex items-center gap-3">
-                  <ArrowRightLeft className="text-emerald-600" />
-                  <h3 className="font-bold text-slate-900">Marketplace Snapshot</h3>
+                  <Target className="text-emerald-600" />
+                  <h3 className="font-bold text-slate-900">Shared Snapshot</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="rounded-2xl bg-emerald-50 p-3">
@@ -677,409 +1178,84 @@ export default function App() {
           </div>
         </motion.div>
 
-        <Tabs value={mode} onValueChange={setMode} className="space-y-6">
-          <TabsList className="grid h-auto w-full grid-cols-3 rounded-3xl bg-white p-2 shadow-md">
-            <TabsTrigger value="intern" className="rounded-2xl py-3">
-              <GraduationCap className="mr-2" size={18} /> Intern Input
-            </TabsTrigger>
-            <TabsTrigger value="department" className="rounded-2xl py-3">
-              <Building2 className="mr-2" size={18} /> Employee Input
-            </TabsTrigger>
-            <TabsTrigger value="marketplace" className="rounded-2xl py-3">
-              <Shuffle className="mr-2" size={18} /> Match Board
-            </TabsTrigger>
-          </TabsList>
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Button
+            onClick={() => navigate("intern")}
+            className={`rounded-2xl ${
+              page === "intern" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-white text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <GraduationCap className="mr-2" size={18} />
+            Intern Page
+          </Button>
+          <Button
+            onClick={() => navigate("employee")}
+            className={`rounded-2xl ${
+              page === "employee" ? "bg-sky-600 hover:bg-sky-700" : "bg-white text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <Building2 className="mr-2" size={18} />
+            Employee Page
+          </Button>
+          <Button onClick={exportMatch} variant="outline" className="rounded-2xl bg-white">
+            <Download className="mr-2" size={18} />
+            Export Match Summary
+          </Button>
+        </div>
 
-          <TabsContent value="intern">
-            <div className="grid gap-6 lg:grid-cols-5">
-              <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-3">
-                <CardContent className="p-6 md:p-8">
-                  <div className="mb-6 flex items-center gap-3">
-                    <div className="rounded-2xl bg-emerald-100 p-2 text-emerald-700">
-                      <GraduationCap />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900">Intern Preference Profile</h2>
-                      <p className="text-slate-600">
-                        Interns select the teams, project themes and skills they want to explore on Fridays.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mb-5 grid gap-4 md:grid-cols-2">
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Intern name</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={internForm.name}
-                        onChange={(e) => setInternForm({ ...internForm, name: e.target.value })}
-                        placeholder="e.g. Summer Intern 01"
-                      />
-                    </label>
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Study background / major</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={internForm.study}
-                        onChange={(e) => setInternForm({ ...internForm, study: e.target.value })}
-                        placeholder="e.g. Engineering / Business / IT"
-                      />
-                    </label>
-                  </div>
-                  <p className="mb-3 font-semibold text-slate-700">Desired teams / departments</p>
-                  <div className="mb-6 grid gap-3 md:grid-cols-3">
-                    {departments.slice(0, 12).map((d) => (
-                      <Chip key={d} active={internForm.desiredTeams.includes(d)} onClick={() => toggle(setInternForm, "desiredTeams", d)}>
-                        {d}
-                      </Chip>
-                    ))}
-                  </div>
-                  <p className="mb-3 font-semibold text-slate-700">Preferred Friday project themes</p>
-                  <div className="mb-6 grid gap-3 md:grid-cols-3">
-                    {projectThemes.map((t) => (
-                      <Chip key={t} active={internForm.desiredThemes.includes(t)} onClick={() => toggle(setInternForm, "desiredThemes", t)}>
-                        {t}
-                      </Chip>
-                    ))}
-                  </div>
-                  <p className="mb-3 font-semibold text-slate-700">Skills / strengths the intern can contribute</p>
-                  <div className="mb-6 grid gap-3 md:grid-cols-3">
-                    {skills.map((s) => (
-                      <Chip key={s} active={internForm.skills.includes(s)} onClick={() => toggle(setInternForm, "skills", s)}>
-                        {s}
-                      </Chip>
-                    ))}
-                  </div>
-                  <label className="block space-y-2">
-                    <span className="font-medium text-slate-700">Learning goal</span>
-                    <textarea
-                      className="min-h-24 w-full rounded-2xl border border-slate-200 p-3"
-                      value={internForm.goals}
-                      onChange={(e) => setInternForm({ ...internForm, goals: e.target.value })}
-                      placeholder="What kind of business exposure or skill growth is the intern looking for?"
-                    />
-                  </label>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button
-                      onClick={addInternToPool}
-                      disabled={isSubmittingIntern}
-                      className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-400"
-                    >
-                      <Users className="mr-2" size={18} />
-                      {isSubmittingIntern ? "Submitting..." : "Add Intern to Pool"}
-                    </Button>
-                    <Button onClick={resetIntern} variant="outline" className="rounded-2xl">
-                      <RotateCcw className="mr-2" size={18} /> Reset
-                    </Button>
-                  </div>
-                  {internNotice ? (
-                    <p
-                      className={`mt-3 text-sm font-medium ${
-                        internNotice.type === "success"
-                          ? "text-emerald-700"
-                          : internNotice.type === "error"
-                            ? "text-red-600"
-                            : "text-slate-600"
-                      }`}
-                    >
-                      {internNotice.message}
-                    </p>
-                  ) : null}
-                </CardContent>
-              </Card>
+        {page === "home" ? (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="rounded-3xl border-0 bg-white shadow-xl">
+              <CardContent className="p-8">
+                <div className="mb-4 flex items-center gap-3">
+                  <GraduationCap className="text-emerald-600" />
+                  <h2 className="text-2xl font-bold text-slate-900">Intern Experience</h2>
+                </div>
+                <p className="mb-6 text-slate-600">
+                  Interns only fill in their profile and see the top one or two project matches from the shared database.
+                </p>
+                <Button onClick={() => navigate("intern")} className="rounded-2xl bg-emerald-600 hover:bg-emerald-700">
+                  Open `/intern`
+                  <ArrowRight className="ml-2" size={18} />
+                </Button>
+              </CardContent>
+            </Card>
 
-              <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-2">
-                <CardContent className="p-6 md:p-8">
-                  <div className="mb-5 flex items-center gap-3">
-                    <Sparkles className="text-emerald-600" />
-                    <h3 className="text-xl font-bold text-slate-900">Recommended Department Needs</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {internToNeeds.slice(0, 4).map(({ need, score, themeOverlap, skillOverlap }) => (
-                      <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
-                        <CardContent className="space-y-3 p-4">
-                          <div>
-                            <p className="text-xs text-slate-500">{need.department}</p>
-                            <h4 className="font-bold text-slate-900">{need.title}</h4>
-                          </div>
-                          <MatchBar score={score} />
-                          <div className="text-xs text-slate-600">
-                            <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
-                          </div>
-                          <div className="text-xs text-slate-600">
-                            <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
-                          </div>
-                          <p className="text-sm text-slate-600">{need.value}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+            <Card className="rounded-3xl border-0 bg-white shadow-xl">
+              <CardContent className="p-8">
+                <div className="mb-4 flex items-center gap-3">
+                  <Building2 className="text-sky-600" />
+                  <h2 className="text-2xl font-bold text-slate-900">Employee Experience</h2>
+                </div>
+                <p className="mb-6 text-slate-600">
+                  Employees submit needs, browse all intern profiles, and keep a quick shortlist of favorites.
+                </p>
+                <Button onClick={() => navigate("employee")} className="rounded-2xl bg-sky-600 hover:bg-sky-700">
+                  Open `/employee`
+                  <ArrowRight className="ml-2" size={18} />
+                </Button>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="department">
-            <div className="grid gap-6 lg:grid-cols-5">
-              <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-3">
-                <CardContent className="p-6 md:p-8">
-                  <div className="mb-6 flex items-center gap-3">
-                    <div className="rounded-2xl bg-sky-100 p-2 text-sky-700">
-                      <Building2 />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900">Employee Department Need</h2>
-                      <p className="text-slate-600">
-                        Employees submit real department needs that could become Friday 20% intern projects.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mb-5 grid gap-4 md:grid-cols-2">
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Department</span>
-                      <select
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.department}
-                        onChange={(e) => setDeptForm({ ...deptForm, department: e.target.value })}
-                      >
-                        <option value="">Select one</option>
-                        {departments.map((d) => (
-                          <option key={d}>{d}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Sponsor / contact person</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.sponsor}
-                        onChange={(e) => setDeptForm({ ...deptForm, sponsor: e.target.value })}
-                        placeholder="e.g. Department sponsor name"
-                      />
-                    </label>
-                    <label className="space-y-2 md:col-span-2">
-                      <span className="font-medium text-slate-700">Project title / business challenge</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.title}
-                        onChange={(e) => setDeptForm({ ...deptForm, title: e.target.value })}
-                        placeholder="e.g. Improve customer understanding of smart meters"
-                      />
-                    </label>
-                  </div>
-                  <p className="mb-3 font-semibold text-slate-700">Project themes</p>
-                  <div className="mb-6 grid gap-3 md:grid-cols-3">
-                    {projectThemes.map((t) => (
-                      <Chip key={t} active={deptForm.themes.includes(t)} onClick={() => toggle(setDeptForm, "themes", t)}>
-                        {t}
-                      </Chip>
-                    ))}
-                  </div>
-                  <p className="mb-3 font-semibold text-slate-700">Skills needed from interns</p>
-                  <div className="mb-6 grid gap-3 md:grid-cols-3">
-                    {skills.map((s) => (
-                      <Chip key={s} active={deptForm.skills.includes(s)} onClick={() => toggle(setDeptForm, "skills", s)}>
-                        {s}
-                      </Chip>
-                    ))}
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Expected output</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.output}
-                        onChange={(e) => setDeptForm({ ...deptForm, output: e.target.value })}
-                        placeholder="e.g. Dashboard prototype / proposal / infographic"
-                      />
-                    </label>
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Mentoring availability</span>
-                      <select
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.mentorTime}
-                        onChange={(e) => setDeptForm({ ...deptForm, mentorTime: e.target.value })}
-                      >
-                        {["15 minutes per week", "30 minutes per week", "1 hour per week", "Briefing and final review only"].map((o) => (
-                          <option key={o}>{o}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Confidentiality level</span>
-                      <select
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.confidentiality}
-                        onChange={(e) => setDeptForm({ ...deptForm, confidentiality: e.target.value })}
-                      >
-                        {["Low", "Medium", "High / sensitive", "Not sure"].map((o) => (
-                          <option key={o}>{o}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="space-y-2">
-                      <span className="font-medium text-slate-700">Business value</span>
-                      <input
-                        className="w-full rounded-2xl border border-slate-200 p-3"
-                        value={deptForm.value}
-                        onChange={(e) => setDeptForm({ ...deptForm, value: e.target.value })}
-                        placeholder="e.g. Saves time / improves CX / supports ESG"
-                      />
-                    </label>
-                  </div>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Button
-                      onClick={addNeedToPool}
-                      disabled={isSubmittingNeed}
-                      className="rounded-2xl bg-sky-600 hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-400"
-                    >
-                      <ClipboardList className="mr-2" size={18} />
-                      {isSubmittingNeed ? "Submitting..." : "Add Need to Pool"}
-                    </Button>
-                    <Button onClick={resetNeed} variant="outline" className="rounded-2xl">
-                      <RotateCcw className="mr-2" size={18} /> Reset
-                    </Button>
-                  </div>
-                  {needNotice ? (
-                    <p
-                      className={`mt-3 text-sm font-medium ${
-                        needNotice.type === "success"
-                          ? "text-emerald-700"
-                          : needNotice.type === "error"
-                            ? "text-red-600"
-                            : "text-slate-600"
-                      }`}
-                    >
-                      {needNotice.message}
-                    </p>
-                  ) : null}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-2">
-                <CardContent className="p-6 md:p-8">
-                  <div className="mb-5 flex items-center gap-3">
-                    <Search className="text-sky-600" />
-                    <h3 className="text-xl font-bold text-slate-900">Recommended Intern Profiles</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {needToInterns.slice(0, 4).map(({ intern, score, themeOverlap, skillOverlap }) => (
-                      <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
-                        <CardContent className="space-y-3 p-4">
-                          <div>
-                            <p className="text-xs text-slate-500">{intern.study}</p>
-                            <h4 className="font-bold text-slate-900">{intern.name}</h4>
-                          </div>
-                          <MatchBar score={score} />
-                          <div className="text-xs text-slate-600">
-                            <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
-                          </div>
-                          <div className="text-xs text-slate-600">
-                            <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
-                          </div>
-                          <p className="text-sm text-slate-600">{intern.goals}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="marketplace">
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-2">
-                <CardContent className="p-6 md:p-8">
-                  <div className="mb-6 flex items-center gap-3">
-                    <Shuffle className="text-emerald-600" />
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900">Live Two-Sided Match Board</h2>
-                      <p className="text-slate-600">
-                        Shows how intern preferences and employee department needs connect in both directions.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid gap-5 md:grid-cols-2">
-                    {internPool.map((intern) => {
-                      const top = employeeNeeds
-                        .map((need) => ({ need, ...scoreMatch(intern, need) }))
-                        .sort((a, b) => b.score - a.score)[0];
-                      return (
-                        <Card key={intern.id} className="rounded-3xl border-emerald-100 bg-emerald-50/70">
-                          <CardContent className="space-y-3 p-5">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold text-emerald-700">Intern</p>
-                                <h3 className="font-bold text-slate-900">{intern.name}</h3>
-                                <p className="text-sm text-slate-600">{intern.study}</p>
-                              </div>
-                              <GraduationCap className="text-emerald-600" />
-                            </div>
-                            <MiniBadgeList items={intern.desiredThemes.slice(0, 3)} />
-                            <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-                              <p className="mb-1 text-xs text-slate-500">Best department project match</p>
-                              <h4 className="font-bold text-slate-900">{top.need.title}</h4>
-                              <p className="text-sm text-slate-600">{top.need.department}</p>
-                              <MatchBar score={top.score} />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-6">
-                <Card className="rounded-3xl border-0 bg-slate-950 text-white shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex items-center gap-3">
-                      <Target className="text-emerald-300" />
-                      <h3 className="text-xl font-bold">Matching Logic</h3>
-                    </div>
-                    <ul className="space-y-3 text-sm text-slate-200">
-                      <li><b>Theme fit:</b> intern interest matches project themes.</li>
-                      <li><b>Skill fit:</b> intern strengths match skills needed.</li>
-                      <li><b>Team fit:</b> intern desired department matches project owner.</li>
-                      <li><b>Feasibility:</b> project is suitable for 4 Friday sessions.</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-3xl border-0 bg-white shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex items-center gap-3">
-                      <BarChart3 className="text-emerald-600" />
-                      <h3 className="text-xl font-bold text-slate-900">Management Value</h3>
-                    </div>
-                    <ul className="list-disc space-y-2 pl-5 text-sm text-slate-600">
-                      <li>Shows internal demand for Gen Z intern support.</li>
-                      <li>Identifies which departments have attractive Friday projects.</li>
-                      <li>Captures intern learning interests before placement.</li>
-                      <li>Creates measurable data for HR, L&amp;D and graduate programme design.</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-3xl border-0 bg-white shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex items-center gap-3">
-                      <CheckCircle2 className="text-emerald-600" />
-                      <h3 className="text-xl font-bold text-slate-900">Booth Use</h3>
-                    </div>
-                    <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-600">
-                      <li>Interns submit preferences before programme start.</li>
-                      <li>Employees submit Friday project needs at the booth or through QR code.</li>
-                      <li>The website displays top matches instantly.</li>
-                      <li>HR reviews and confirms the final Friday allocation.</li>
-                    </ol>
-                    <Button onClick={exportMatch} className="mt-5 w-full rounded-2xl bg-emerald-600 hover:bg-emerald-700">
-                      <Download className="mr-2" size={18} /> Export Match Summary
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            <Card className="rounded-3xl border-0 bg-slate-950 text-white shadow-xl lg:col-span-2">
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <CheckCircle2 className="text-emerald-300" />
+                  <h3 className="text-xl font-bold">Current Setup</h3>
+                </div>
+                <ul className="space-y-3 text-sm text-slate-200">
+                  <li><b>Shared data:</b> both pages still use the same intern and department records.</li>
+                  <li><b>Simple routing:</b> use `/intern` and `/employee` without adding a new backend.</li>
+                  <li><b>Next upgrade:</b> authentication can be added later if you want true access control.</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        ) : page === "intern" ? (
+          renderInternPage()
+        ) : (
+          renderEmployeePage()
+        )}
       </div>
     </div>
   );
