@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, CheckCircle2, GraduationCap } from "lucide-react";
+import { Building2, GraduationCap } from "lucide-react";
 
 export default function App() {
   return (
@@ -59,19 +59,6 @@ export default function App() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border-0 bg-slate-950 text-white shadow-xl lg:col-span-2">
-            <CardContent className="p-6">
-              <div className="mb-4 flex items-center gap-3">
-                <CheckCircle2 className="text-emerald-300" />
-                <h3 className="text-xl font-bold">Shared Backend</h3>
-              </div>
-              <ul className="space-y-3 text-sm text-slate-200">
-                <li><b>Separate sites:</b> intern and employee are now different entry points.</li>
-                <li><b>Shared data:</b> both still read and write the same Supabase tables.</li>
-                <li><b>Cleaner access model:</b> UI is separated now, and authentication can be layered on later.</li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

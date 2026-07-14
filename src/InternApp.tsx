@@ -6,6 +6,7 @@ import { Download, GraduationCap, RotateCcw, Sparkles, Target, Users } from "luc
 import {
   Chip,
   MatchBar,
+  MiniBadgeList,
   SharedSnapshot,
   departments,
   projectThemes,
@@ -16,6 +17,7 @@ import {
 export default function InternApp() {
   const {
     addInternToPool,
+    employeeNeeds,
     exportMatch,
     internForm,
     internNotice,
@@ -38,11 +40,8 @@ export default function InternApp() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Friday Match For Interns
+                Match For Interns
               </h1>
-              <p className="mt-3 max-w-4xl text-lg text-slate-600">
-                Interns submit their interests and only see the top project matches from the shared marketplace.
-              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
                   onClick={() => {
@@ -82,7 +81,7 @@ export default function InternApp() {
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900">Intern Preference Profile</h2>
                   <p className="text-slate-600">
-                    Pick the teams, themes and strengths you want your Friday work to focus on.
+                    Pick the teams, themes and strengths you want your work to focus on.
                   </p>
                 </div>
               </div>
@@ -121,7 +120,7 @@ export default function InternApp() {
                 ))}
               </div>
 
-              <p className="mb-3 font-semibold text-slate-700">Preferred Friday project themes</p>
+              <p className="mb-3 font-semibold text-slate-700">Preferred project themes</p>
               <div className="mb-6 grid gap-3 md:grid-cols-3">
                 {projectThemes.map((theme) => (
                   <Chip
@@ -223,11 +222,59 @@ export default function InternApp() {
                   <li><b>Theme fit:</b> intern interest matches project themes.</li>
                   <li><b>Skill fit:</b> intern strengths match skills needed.</li>
                   <li><b>Team fit:</b> intern desired department matches project owner.</li>
-                  <li><b>Feasibility:</b> project is suitable for 4 Friday sessions.</li>
+                  <li><b>Feasibility:</b> project is suitable for 4 sessions.</li>
                 </ul>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="rounded-3xl border-0 bg-white shadow-xl lg:col-span-5">
+            <CardContent className="p-6 md:p-8">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900">All Friday Projects</h3>
+                  <p className="text-slate-600">
+                    Interns can browse the full shared project list, with the strongest matches shown first.
+                  </p>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-700">{employeeNeeds.length} projects</Badge>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {internToNeeds.map(({ need, score, themeOverlap, skillOverlap }) => (
+                  <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
+                    <CardContent className="space-y-4 p-5">
+                      <div>
+                        <p className="text-sm text-slate-500">{need.department}</p>
+                        <h4 className="font-bold text-slate-900">{need.title}</h4>
+                        <p className="mt-1 text-sm text-slate-600">{need.sponsor}</p>
+                      </div>
+
+                      <MiniBadgeList items={need.themes.slice(0, 3)} />
+                      <MatchBar score={score} />
+
+                      <div className="space-y-2 text-xs text-slate-600">
+                        <div>
+                          <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                        </div>
+                        <div>
+                          <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                        </div>
+                        <div>
+                          <b>Mentor time:</b> {need.mentorTime}
+                        </div>
+                        <div>
+                          <b>Confidentiality:</b> {need.confidentiality}
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-slate-600">{need.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
