@@ -52,11 +52,8 @@ export default function EmployeeApp() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Friday Match For Employees
+                Match For Employees
               </h1>
-              <p className="mt-3 max-w-4xl text-lg text-slate-600">
-                Employees submit project needs, browse interns, and shortlist favorites using the same shared data.
-              </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button
                   onClick={() => {
