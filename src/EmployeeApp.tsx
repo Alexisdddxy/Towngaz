@@ -48,11 +48,11 @@ export default function EmployeeApp() {
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <Badge className="mb-3 bg-sky-600">Employee Website</Badge>
+          <Badge className="mb-3 bg-sky-600">TalentMatch</Badge>
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-                Friday Match For Employees
+                TalentMatch
               </h1>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button

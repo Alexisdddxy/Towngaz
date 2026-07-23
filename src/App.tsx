@@ -9,9 +9,9 @@ export default function App() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4 md:p-8">
       <div className="mx-auto w-full max-w-6xl">
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
-          <Badge className="mb-3 bg-emerald-600">Towngas Open Talent Marketplace</Badge>
+          <Badge className="mb-3 bg-emerald-600">TalentMatch</Badge>
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-950 md:text-6xl">
-            Choose A Website
+            TalentMatch
           </h1>
         </motion.div>
 
@@ -20,7 +20,7 @@ export default function App() {
             <CardContent className="p-8">
               <div className="mb-4 flex items-center gap-3">
                 <GraduationCap className="text-emerald-600" />
-                <h2 className="text-2xl font-bold text-slate-900">Intern Website</h2>
+                <h2 className="text-2xl font-bold text-slate-900">TalentMatch Intern</h2>
               </div>
               <p className="mb-6 text-slate-600">
                 Interns fill in their profile and only see their best-fit Friday projects.
@@ -40,7 +40,7 @@ export default function App() {
             <CardContent className="p-8">
               <div className="mb-4 flex items-center gap-3">
                 <Building2 className="text-sky-600" />
-                <h2 className="text-2xl font-bold text-slate-900">Employee Website</h2>
+                <h2 className="text-2xl font-bold text-slate-900">TalentMatch Employee</h2>
               </div>
               <p className="mb-6 text-slate-600">
                 Employees submit project needs, browse interns, and keep a shortlist of favorites.
