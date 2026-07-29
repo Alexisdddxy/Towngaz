@@ -19,20 +19,31 @@ export const projectThemes = [
 ];
 
 export const departments = [
-  "Engineering",
-  "Gas Network",
-  "New Energy",
-  "Finance",
-  "Customer Installation",
-  "Marketing",
-  "Corporate Communications",
-  "Sustainability / ESG",
+  "Business Transformation & Enquiry",
+  "Commercial & Industrial Marketing & Sales",
+  "Commercial & Industrial Services & Business Development",
+  "Company Secretarial",
   "Corporate Affairs",
-  "Human Resources",
-  "Safety / Operations",
-  "Procurement",
+  "Group Audit & Risk Management",
+  "Group ESG",
+  "Group Human Resources",
+  "Corporate Information Technology",
+  "Group Innovation and Development",
+  "Corporate Supplies & Administration",
+  "Group Safety & Environmental Management",
+  "Group Training & Development",
+  "Customer Services Stream",
+  "Finance Division",
   "Group Legal",
-  "Other",
+  "Gas Production Stream",
+  "Manufacturing Business",
+  "Marketing & Sales Stream",
+  "Gas Network",
+  "Project Marketing & Sales",
+  "Property Management",
+  "Product Development",
+  "Retail Marketing & Sales",
+  "Towngas Training Institute",
 ];
 
 export const skills = [
@@ -353,13 +364,8 @@ export function useMarketplaceData() {
       const remoteInterns = (internResult.data as InternRow[]).map(rowToIntern);
       const remoteNeeds = (needResult.data as NeedRow[]).map(rowToNeed);
 
-      if (remoteInterns.length > 0) {
-        setInternPool(remoteInterns);
-      }
-
-      if (remoteNeeds.length > 0) {
-        setEmployeeNeeds(remoteNeeds);
-      }
+      setInternPool(remoteInterns);
+      setEmployeeNeeds(remoteNeeds);
 
       setSyncState("Supabase connected");
       setIsSyncing(false);
