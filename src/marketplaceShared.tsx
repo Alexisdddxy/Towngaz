@@ -386,43 +386,48 @@ export function useMarketplaceData() {
     return () => window.clearTimeout(timer);
   }, [needNotice]);
 
-  const fallbackIntern = internPool[0] ?? sampleInterns[0];
-  const fallbackNeed = employeeNeeds[0] ?? defaultDepartmentNeeds[0];
+  const formIntern: Intern = {
+    id: "current-intern",
+    name: internForm.name || "Current Intern",
+    study: internForm.study || "Not specified",
+    desiredTeams: internForm.desiredTeams,
+    desiredThemes: internForm.desiredThemes,
+    skills: internForm.skills,
+    goals: internForm.goals,
+    availability: internForm.availability,
+  };
 
-  const activeIntern =
-    internForm.name || internForm.desiredThemes.length || internForm.skills.length
-      ? {
-          id: "current-intern",
-          name: internForm.name || "Current Intern",
-          study: internForm.study || "Not specified",
-          desiredTeams: internForm.desiredTeams,
-          desiredThemes: internForm.desiredThemes,
-          skills: internForm.skills,
-          goals: internForm.goals,
-          availability: internForm.availability,
-        }
-      : fallbackIntern;
+  const formNeed: Need = {
+    id: "current-need",
+    department: deptForm.department || "Not specified",
+    sponsor: deptForm.sponsor || "Department Sponsor",
+    title: deptForm.title || "Department Friday Project",
+    themes: deptForm.themes,
+    skills: deptForm.skills,
+    output: deptForm.output || "Practical prototype / short proposal",
+    value: deptForm.value || "Creates practical innovation capacity for the department.",
+    mentorTime: deptForm.mentorTime,
+    confidentiality: deptForm.confidentiality,
+  };
 
-  const activeNeed =
-    deptForm.title || deptForm.themes.length || deptForm.skills.length
-      ? {
-          id: "current-need",
-          department: deptForm.department || "Not specified",
-          sponsor: deptForm.sponsor || "Department Sponsor",
-          title: deptForm.title || "Department Friday Project",
-          themes: deptForm.themes,
-          skills: deptForm.skills,
-          output: deptForm.output || "Practical prototype / short proposal",
-          value: deptForm.value || "Creates practical innovation capacity for the department.",
-          mentorTime: deptForm.mentorTime,
-          confidentiality: deptForm.confidentiality,
-        }
-      : fallbackNeed;
+  const hasInternInput = Boolean(
+    internForm.name ||
+      internForm.desiredTeams.length ||
+      internForm.desiredThemes.length ||
+      internForm.skills.length,
+  );
+  const hasNeedInput = Boolean(deptForm.title || deptForm.themes.length || deptForm.skills.length);
+
+  // Blank forms score nothing: matches only come from real form input or real database rows.
+  const activeIntern: Intern | null = hasInternInput ? formIntern : null;
+  const activeNeed: Need | null = hasNeedInput ? formNeed : employeeNeeds[0] ?? null;
+
+  const zeroMatch = { score: 0, themeOverlap: [] as string[], skillOverlap: [] as string[], teamOverlap: [] as string[] };
 
   const internToNeeds = useMemo(
     () =>
       employeeNeeds
-        .map((need) => ({ need, ...scoreMatch(activeIntern, need) }))
+        .map((need) => ({ need, ...(activeIntern ? scoreMatch(activeIntern, need) : zeroMatch) }))
         .sort((a, b) => b.score - a.score),
     [activeIntern, employeeNeeds],
   );
@@ -430,7 +435,7 @@ export function useMarketplaceData() {
   const needToInterns = useMemo(
     () =>
       internPool
-        .map((intern) => ({ intern, ...scoreMatch(intern, activeNeed) }))
+        .map((intern) => ({ intern, ...(activeNeed ? scoreMatch(intern, activeNeed) : zeroMatch) }))
         .sort((a, b) => b.score - a.score),
     [activeNeed, internPool],
   );
@@ -510,7 +515,7 @@ export function useMarketplaceData() {
     });
 
   const addNeedToPool = async () => {
-    const newNeed: Need = { ...activeNeed, id: `need-${Date.now()}` };
+    const newNeed: Need = { ...formNeed, id: `need-${Date.now()}` };
     setIsSubmittingNeed(true);
     setNeedNotice({ type: "info", message: "Submitting department need..." });
 
@@ -546,7 +551,7 @@ export function useMarketplaceData() {
   };
 
   const addInternToPool = async () => {
-    const newIntern: Intern = { ...activeIntern, id: `intern-${Date.now()}` };
+    const newIntern: Intern = { ...formIntern, id: `intern-${Date.now()}` };
     setIsSubmittingIntern(true);
     setInternNotice({ type: "info", message: "Submitting intern profile..." });
 
@@ -584,7 +589,7 @@ export function useMarketplaceData() {
   const exportMatch = (label: string) => {
     const topInternNeed = internToNeeds[0];
     const topNeedIntern = needToInterns[0];
-    const text = `Towngas Friday Marketplace Match\n\nSite: ${label}\n\nIntern-side top match:\nIntern: ${activeIntern.name}\nMatched Department Project: ${topInternNeed?.need.title}\nDepartment: ${topInternNeed?.need.department}\nMatch Score: ${topInternNeed?.score}\nShared Themes: ${topInternNeed?.themeOverlap.join(", ")}\nShared Skills: ${topInternNeed?.skillOverlap.join(", ")}\n\nDepartment-side top match:\nProject: ${activeNeed.title}\nMatched Intern: ${topNeedIntern?.intern.name}\nIntern Background: ${topNeedIntern?.intern.study}\nMatch Score: ${topNeedIntern?.score}\nShared Themes: ${topNeedIntern?.themeOverlap.join(", ")}\nShared Skills: ${topNeedIntern?.skillOverlap.join(", ")}\n\nMarketplace Stats:\nIntern profiles: ${marketplaceStats.interns}\nDepartment needs: ${marketplaceStats.needs}\nPossible matches: ${marketplaceStats.matches}`;
+    const text = `Towngas Friday Marketplace Match\n\nSite: ${label}\n\nIntern-side top match:\nIntern: ${activeIntern?.name ?? "Not filled in"}\nMatched Department Project: ${topInternNeed?.need.title}\nDepartment: ${topInternNeed?.need.department}\nMatch Score: ${topInternNeed?.score}\nShared Themes: ${topInternNeed?.themeOverlap.join(", ")}\nShared Skills: ${topInternNeed?.skillOverlap.join(", ")}\n\nDepartment-side top match:\nProject: ${activeNeed?.title ?? "Not filled in"}\nMatched Intern: ${topNeedIntern?.intern.name}\nIntern Background: ${topNeedIntern?.intern.study}\nMatch Score: ${topNeedIntern?.score}\nShared Themes: ${topNeedIntern?.themeOverlap.join(", ")}\nShared Skills: ${topNeedIntern?.skillOverlap.join(", ")}\n\nMarketplace Stats:\nIntern profiles: ${marketplaceStats.interns}\nDepartment needs: ${marketplaceStats.needs}\nPossible matches: ${marketplaceStats.matches}`;
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -604,6 +609,8 @@ export function useMarketplaceData() {
     exportMatch,
     favoriteInternIds,
     favoriteInterns,
+    hasInternInput,
+    hasNeedInput,
     internForm,
     internNotice,
     internPool,

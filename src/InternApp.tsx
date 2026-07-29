@@ -19,6 +19,7 @@ export default function InternApp() {
     addInternToPool,
     employeeNeeds,
     exportMatch,
+    hasInternInput,
     internForm,
     internNotice,
     internToNeeds,
@@ -193,24 +194,35 @@ export default function InternApp() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {internToNeeds.slice(0, 2).map(({ need, score, themeOverlap, skillOverlap }) => (
-                    <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
-                      <CardContent className="space-y-3 p-4">
-                        <div>
-                          <p className="text-xs text-slate-500">{need.department}</p>
-                          <h4 className="font-bold text-slate-900">{need.title}</h4>
-                        </div>
-                        <MatchBar score={score} />
-                        <div className="text-xs text-slate-600">
-                          <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
-                        </div>
-                        <div className="text-xs text-slate-600">
-                          <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
-                        </div>
-                        <p className="text-sm text-slate-600">{need.value}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {!hasInternInput ? (
+                    <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                      Fill in your name, desired teams, themes or skills on the left to see your best-fit Friday
+                      projects here.
+                    </p>
+                  ) : internToNeeds.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                      No department projects are available yet. Please check back later.
+                    </p>
+                  ) : (
+                    internToNeeds.slice(0, 2).map(({ need, score, themeOverlap, skillOverlap }) => (
+                      <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
+                        <CardContent className="space-y-3 p-4">
+                          <div>
+                            <p className="text-xs text-slate-500">{need.department}</p>
+                            <h4 className="font-bold text-slate-900">{need.title}</h4>
+                          </div>
+                          <MatchBar score={score} />
+                          <div className="text-xs text-slate-600">
+                            <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                          </div>
+                          <p className="text-sm text-slate-600">{need.value}</p>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -239,43 +251,58 @@ export default function InternApp() {
                   <p className="text-slate-600">
                     Interns can browse the full shared project list, with the strongest matches shown first.
                   </p>
+                  {!hasInternInput ? (
+                    <p className="mt-1 text-sm text-emerald-700">
+                      Fill in your preferences above to see match scores for each project.
+                    </p>
+                  ) : null}
                 </div>
                 <Badge className="bg-emerald-100 text-emerald-700">{employeeNeeds.length} projects</Badge>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {internToNeeds.map(({ need, score, themeOverlap, skillOverlap }) => (
-                  <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
-                    <CardContent className="space-y-4 p-5">
-                      <div>
-                        <p className="text-sm text-slate-500">{need.department}</p>
-                        <h4 className="font-bold text-slate-900">{need.title}</h4>
-                        <p className="mt-1 text-sm text-slate-600">{need.sponsor}</p>
-                      </div>
+              {internToNeeds.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                  No department projects are available yet. Please check back later.
+                </p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {internToNeeds.map(({ need, score, themeOverlap, skillOverlap }) => (
+                    <Card key={need.id} className="rounded-3xl border-slate-100 shadow-sm">
+                      <CardContent className="space-y-4 p-5">
+                        <div>
+                          <p className="text-sm text-slate-500">{need.department}</p>
+                          <h4 className="font-bold text-slate-900">{need.title}</h4>
+                          <p className="mt-1 text-sm text-slate-600">{need.sponsor}</p>
+                        </div>
 
-                      <MiniBadgeList items={need.themes.slice(0, 3)} />
-                      <MatchBar score={score} />
+                        <MiniBadgeList items={need.themes.slice(0, 3)} />
+                        {hasInternInput ? <MatchBar score={score} /> : null}
 
-                      <div className="space-y-2 text-xs text-slate-600">
-                        <div>
-                          <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                        <div className="space-y-2 text-xs text-slate-600">
+                          {hasInternInput ? (
+                            <>
+                              <div>
+                                <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                              </div>
+                              <div>
+                                <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                              </div>
+                            </>
+                          ) : null}
+                          <div>
+                            <b>Mentor time:</b> {need.mentorTime}
+                          </div>
+                          <div>
+                            <b>Confidentiality:</b> {need.confidentiality}
+                          </div>
                         </div>
-                        <div>
-                          <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
-                        </div>
-                        <div>
-                          <b>Mentor time:</b> {need.mentorTime}
-                        </div>
-                        <div>
-                          <b>Confidentiality:</b> {need.confidentiality}
-                        </div>
-                      </div>
 
-                      <p className="text-sm text-slate-600">{need.value}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        <p className="text-sm text-slate-600">{need.value}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

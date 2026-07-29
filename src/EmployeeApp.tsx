@@ -24,6 +24,7 @@ import {
 
 export default function EmployeeApp() {
   const {
+    activeNeed,
     addNeedToPool,
     deptForm,
     employeeNeeds,
@@ -237,41 +238,52 @@ export default function EmployeeApp() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {needToInterns.slice(0, 4).map(({ intern, score, themeOverlap, skillOverlap }) => {
-                    const isFavorite = favoriteInternIds.includes(intern.id);
-                    return (
-                      <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
-                        <CardContent className="space-y-3 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-xs text-slate-500">{intern.study}</p>
-                              <h4 className="font-bold text-slate-900">{intern.name}</h4>
+                  {!activeNeed ? (
+                    <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                      Fill in the department need form on the left to see recommended intern matches.
+                    </p>
+                  ) : needToInterns.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                      No intern profiles in the pool yet. Recommendations appear once interns submit their
+                      profiles.
+                    </p>
+                  ) : (
+                    needToInterns.slice(0, 4).map(({ intern, score, themeOverlap, skillOverlap }) => {
+                      const isFavorite = favoriteInternIds.includes(intern.id);
+                      return (
+                        <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
+                          <CardContent className="space-y-3 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs text-slate-500">{intern.study}</p>
+                                <h4 className="font-bold text-slate-900">{intern.name}</h4>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => toggleFavoriteIntern(intern.id)}
+                                className={`rounded-full border p-2 transition ${
+                                  isFavorite
+                                    ? "border-rose-200 bg-rose-50 text-rose-600"
+                                    : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
+                                }`}
+                                aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                              >
+                                <Heart className={isFavorite ? "fill-current" : ""} size={16} />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleFavoriteIntern(intern.id)}
-                              className={`rounded-full border p-2 transition ${
-                                isFavorite
-                                  ? "border-rose-200 bg-rose-50 text-rose-600"
-                                  : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
-                              }`}
-                              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                            >
-                              <Heart className={isFavorite ? "fill-current" : ""} size={16} />
-                            </button>
-                          </div>
-                          <MatchBar score={score} />
-                          <div className="text-xs text-slate-600">
-                            <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
-                          </div>
-                          <div className="text-xs text-slate-600">
-                            <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
-                          </div>
-                          <p className="text-sm text-slate-600">{intern.goals}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                            <MatchBar score={score} />
+                            <div className="text-xs text-slate-600">
+                              <b>Shared themes:</b> {themeOverlap.length ? themeOverlap.join(", ") : "None yet"}
+                            </div>
+                            <div className="text-xs text-slate-600">
+                              <b>Shared skills:</b> {skillOverlap.length ? skillOverlap.join(", ") : "None yet"}
+                            </div>
+                            <p className="text-sm text-slate-600">{intern.goals}</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -326,49 +338,61 @@ export default function EmployeeApp() {
                 <Badge className="bg-sky-100 text-sky-700">{internPool.length} interns</Badge>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {internPool.map((intern) => {
-                  const bestNeed = employeeNeeds
-                    .map((need) => ({ need, ...scoreMatch(intern, need) }))
-                    .sort((a, b) => b.score - a.score)[0];
-                  const isFavorite = favoriteInternIds.includes(intern.id);
+              {internPool.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">
+                  No intern profiles yet. Profiles appear here once interns submit from the intern website.
+                </p>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {internPool.map((intern) => {
+                    const bestNeed = employeeNeeds
+                      .map((need) => ({ need, ...scoreMatch(intern, need) }))
+                      .sort((a, b) => b.score - a.score)[0];
+                    const isFavorite = favoriteInternIds.includes(intern.id);
 
-                  return (
-                    <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
-                      <CardContent className="space-y-4 p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h4 className="font-bold text-slate-900">{intern.name}</h4>
-                            <p className="text-sm text-slate-500">{intern.study}</p>
+                    return (
+                      <Card key={intern.id} className="rounded-3xl border-slate-100 shadow-sm">
+                        <CardContent className="space-y-4 p-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h4 className="font-bold text-slate-900">{intern.name}</h4>
+                              <p className="text-sm text-slate-500">{intern.study}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleFavoriteIntern(intern.id)}
+                              className={`rounded-full border p-2 transition ${
+                                isFavorite
+                                  ? "border-rose-200 bg-rose-50 text-rose-600"
+                                  : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
+                              }`}
+                              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                            >
+                              <Heart className={isFavorite ? "fill-current" : ""} size={16} />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleFavoriteIntern(intern.id)}
-                            className={`rounded-full border p-2 transition ${
-                              isFavorite
-                                ? "border-rose-200 bg-rose-50 text-rose-600"
-                                : "border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:text-rose-600"
-                            }`}
-                            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                          >
-                            <Heart className={isFavorite ? "fill-current" : ""} size={16} />
-                          </button>
-                        </div>
-                        <MiniBadgeList items={intern.desiredThemes.slice(0, 3)} />
-                        <p className="text-sm text-slate-600">{intern.goals}</p>
-                        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
-                          <p className="mb-1 text-xs text-slate-500">Current best project match</p>
-                          <h5 className="font-semibold text-slate-900">{bestNeed.need.title}</h5>
-                          <p className="text-sm text-slate-600">{bestNeed.need.department}</p>
-                          <div className="mt-3">
-                            <MatchBar score={bestNeed.score} />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                          <MiniBadgeList items={intern.desiredThemes.slice(0, 3)} />
+                          <p className="text-sm text-slate-600">{intern.goals}</p>
+                          {bestNeed ? (
+                            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                              <p className="mb-1 text-xs text-slate-500">Current best project match</p>
+                              <h5 className="font-semibold text-slate-900">{bestNeed.need.title}</h5>
+                              <p className="text-sm text-slate-600">{bestNeed.need.department}</p>
+                              <div className="mt-3">
+                                <MatchBar score={bestNeed.score} />
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="rounded-2xl border border-dashed border-slate-200 p-4 text-xs text-slate-500">
+                              No department projects available to match against yet.
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
