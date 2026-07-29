@@ -21,6 +21,7 @@ export const projectThemes = [
 export const departments = [
   "Engineering",
   "Gas Network",
+  "New Energy",
   "Finance",
   "Customer Installation",
   "Marketing",
